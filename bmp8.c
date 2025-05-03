@@ -1,82 +1,113 @@
+#include "bmp8.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "bmp8.h"
 
-t_bmp8 * chargerImage(const char *nomFichier) {
-    FILE *fichier = fopen(nomFichier, "rb");
-    if (fichier == NULL) {
-        printf("Erreur : impossible d'ouvrir le fichier %s\n", nomFichier);
+t_bmp8 *bmp8_loadImage(const char *filename) {
+    FILE *f = fopen(filename, "rb");
+    if (!f) return NULL;
+
+    t_bmp8 *img = malloc(sizeof(t_bmp8));
+    if (!img) {
+        fclose(f);
         return NULL;
     }
 
-    t_bmp8 *image = (t_bmp8 *)malloc(sizeof(t_bmp8));
-    if (image == NULL) {
-        printf("Erreur : mémoire insuffisante\n");
-        fclose(fichier);
-        return NULL;
-    }
+    fread(img->header, 1, 54, f);
 
-    fread(image->header, sizeof(unsigned char), 54, fichier);
+    fread(img->colorTable, 1, 1024, f);
 
-    image->width = *(unsigned int*)&image->header[18];
-    image->height = *(unsigned int*)&image->header[22];
-    image->colorDepth = *(unsigned short*)&image->header[28];
-    image->dataSize = *(unsigned int*)&image->header[34];
+    img->width = *(int*)&img->header[18];
+    img->height = *(int*)&img->header[22];
+    img->colorDepth = img->header[28];
+    img->dataSize = *(int*)&img->header[34];
 
-    if (image->colorDepth != 8) {
-        printf("Erreur : l'image n'est pas en niveaux de gris 8 bits.\n");
-        free(image);
-        fclose(fichier);
-        return NULL;
-    }
+    img->data = malloc(img->dataSize);
+    fread(img->data, 1, img->dataSize, f);
 
-    fread(image->colorTable, sizeof(unsigned char), 1024, fichier);
-
-    image->data = (unsigned char *)malloc(image->dataSize * sizeof(unsigned char));
-    if (image->data == NULL) {
-        printf("Erreur : mémoire insuffisante pour les données de l'image\n");
-        free(image);
-        fclose(fichier);
-        return NULL;
-    }
-
-    fread(image->data, sizeof(unsigned char), image->dataSize, fichier);
-
-    fclose(fichier);
-    return image;
+    fclose(f);
+    return img;
 }
 
-void sauvegarderImage(const char *nomFichier, t_bmp8 *image) {
-    FILE *fichier = fopen(nomFichier, "wb");
-    if (fichier == NULL) {
-        printf("Erreur : impossible d'ouvrir le fichier pour écriture %s\n", nomFichier);
+void bmp8_saveImage(const char *filename, t_bmp8 *img) {
+    if (!img) return;
+
+    FILE *f = fopen(filename, "wb");
+    if (!f) return;
+
+    fwrite(img->header, 1, 54, f);
+    fwrite(img->colorTable, 1, 1024, f);
+    fwrite(img->data, 1, img->dataSize, f);
+
+    fclose(f);
+}
+
+
+void bmp8_free(t_bmp8 *img) {
+    if (img) {
+        if (img->data) free(img->data);
+        free(img);
+    }
+}
+
+void bmp8_printInfo(t_bmp8 *img) {
+    if (!img) {
+        printf("Pas d'image chargée\n");
         return;
     }
 
-    fwrite(image->header, sizeof(unsigned char), 54, fichier);
-    fwrite(image->colorTable, sizeof(unsigned char), 1024, fichier);
-    fwrite(image->data, sizeof(unsigned char), image->dataSize, fichier);
-
-    fclose(fichier);
+    printf("Taille : %d x %d pixels\n", img->width, img->height);
+    printf("Profondeur : %d bits\n", img->colorDepth);
 }
 
-void libererImage(t_bmp8 *image) {
-    if (image != NULL) {
-        if (image->data != NULL) {
-            free(image->data);
-        }
-        free(image);
+void bmp8_negative(t_bmp8 *img) {
+
+    if (img == NULL || img->data == NULL) {
+        printf("Erreur: Image invalide\n");
+        return;
+    }
+
+
+    for (unsigned int i = 0; i < img->dataSize; i++) {
+
+        img->data[i] = 255 - img->data[i];
     }
 }
 
-void afficherInfosImage(t_bmp8 *image) {
-    if (image != NULL) {
-        printf("Infos de l'image :\n");
-        printf("Largeur : %u\n", image->width);
-        printf("Hauteur : %u\n", image->height);
-        printf("Profondeur Couleur : %u\n", image->colorDepth);
-        printf("Taille des Données : %u\n", image->dataSize);
-    } else {
-        printf("Image vide.\n");
+void bmp8_brightness(t_bmp8 *img, int value) {
+
+    if (img == NULL || img->data == NULL) {
+        fprintf(stderr, "Erreur: Image invalide\n");
+        return;
+    }
+
+
+    for (unsigned int i = 0; i < img->dataSize; i++) {
+        int new_value = img->data[i] + value;
+
+
+        if (new_value > 255) {
+            img->data[i] = 255;
+        } else if (new_value < 0) {
+            img->data[i] = 0;
+        } else {
+            img->data[i] = (unsigned char)new_value;
+        }
+    }
+}
+
+void bmp8_threshold(t_bmp8 *img, int threshold) {
+
+    if (img == NULL || img->data == NULL) {
+        fprintf(stderr, "Erreur: Image invalide\n");
+        return;
+    }
+
+
+    if (threshold < 0) threshold = 0;
+    if (threshold > 255) threshold = 255;
+
+
+    for (unsigned int i = 0; i < img->dataSize; i++) {
+        img->data[i] = (img->data[i] >= threshold) ? 255 : 0;
     }
 }
