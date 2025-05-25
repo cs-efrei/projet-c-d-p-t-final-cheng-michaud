@@ -1,0 +1,7 @@
+# ninja log v6
+4	91	7647862489716907	CMakeFiles/Michaud_Cheng_IProcess.dir/main.c.obj	b6b2f773e5b738c0
+34	652	7699106617168946	build.ninja	4e00270653a8489e
+3	165	7699106617676615	CMakeFiles/Michaud_Cheng_IProcess.dir/main.c.obj	b6b2f773e5b738c0
+7	173	7699106617721846	CMakeFiles/Michaud_Cheng_IProcess.dir/bmp8.c.obj	2eebb33182344b47
+12	193	7699106617767493	CMakeFiles/Michaud_Cheng_IProcess.dir/bmp24.c.obj	dfd358fb29efa673
+193	311	7699106619584339	Michaud_Cheng_IProcess.exe	b7910c76494cb480
